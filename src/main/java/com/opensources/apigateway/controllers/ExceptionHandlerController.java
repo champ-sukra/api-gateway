@@ -13,8 +13,8 @@ public class ExceptionHandlerController {
 
     @ResponseBody
     @ExceptionHandler(GeneralErrorException.class)
-    public ResponseEntity<Response<Object>> handleDataNotFoundException(GeneralErrorException e) {
-        Response<Object> responseObject = new Response<>();
+    public ResponseEntity<?> handleGeneralErrorException(GeneralErrorException e) {
+        Response<?> responseObject = new Response<>();
         responseObject.setCode(e.getErrorCode());
 
         return new ResponseEntity<>(responseObject, HttpStatus.BAD_REQUEST);
