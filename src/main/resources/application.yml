@@ -1,0 +1,10 @@
+server:
+  services:
+    auth:
+      scheme: http
+      host: localhost
+      port: 8082
+    customer:
+      scheme: http
+      host: localhost
+      port: 8081

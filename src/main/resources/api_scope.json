@@ -1,0 +1,14 @@
+[
+  {
+    "service": "service-a",
+    "path": "/service-a/v1/test",
+    "method": "GET",
+    "auth_required": true
+  },
+  {
+    "service": "auth",
+    "path": "/auth/management/v1/roles",
+    "method": "GET",
+    "auth_required": false
+  }
+]
