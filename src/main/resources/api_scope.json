@@ -9,6 +9,10 @@
     "service": "auth",
     "path": "/auth/management/v1/roles",
     "method": "GET",
-    "auth_required": false
+    "auth_required": false,
+    "cache_control": {
+      "pattern": "roles",
+      "ttl": 600
+    }
   }
 ]

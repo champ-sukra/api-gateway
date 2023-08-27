@@ -14,6 +14,8 @@ import org.springframework.security.config.annotation.web.configuration.EnableWe
 import org.springframework.security.web.AuthenticationEntryPoint;
 import org.springframework.security.web.SecurityFilterChain;
 
+import java.util.List;
+
 @Configuration
 @EnableWebSecurity
 public class SecurityConfig {
@@ -27,12 +29,12 @@ public class SecurityConfig {
 
     @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
-        JsonNode jsonNode = apiScopeService.loadApiScopes();
+        JsonNode apiScopes = apiScopeService.loadApiScopes();
 
-        for (JsonNode entry : jsonNode) {
-            String path = entry.get("path").asText();
-            String method = entry.get("method").asText();
-            boolean authRequired = entry.get("auth_required").asBoolean();
+        for (JsonNode scope : apiScopes) {
+            String path = scope.get("path").asText();
+            String method = scope.get("method").asText();
+            boolean authRequired = scope.get("auth_required").asBoolean();
 
             //TODO: handle authenticated
             if (authRequired) {
@@ -45,6 +47,9 @@ public class SecurityConfig {
                 );
             }
         }
+
+        List<JsonNode> dynamicApiScopes = apiScopeService.loadDynamicApiScopes();
+        System.out.println(dynamicApiScopes);
 
         // Deny access to all unmatched requests
         http.exceptionHandling()
