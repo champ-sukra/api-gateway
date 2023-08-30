@@ -1,0 +1,39 @@
+[
+  {
+    "service": "auth",
+    "path": "/auth/management/v1/roles",
+    "method": "GET",
+    "auth_required": false,
+    "cache_control": {
+      "pattern": "roles",
+      "ttl": 600
+    }
+  },
+  {
+    "path": "/composite/v1/profiles",
+    "method": "GET",
+    "auth_required": false,
+    "cache_control": {
+      "pattern": "x",
+      "ttl": 600
+    },
+    "routes": [
+      [
+        {
+          "service": "auth",
+          "path": "/auth/management/v1/roles",
+          "method": "GET",
+          "key": "x1"
+        }
+      ],
+      [
+        {
+          "service": "auth",
+          "path": "/auth/management/v1/roles",
+          "method": "GET",
+          "key": "x3"
+        }
+      ]
+    ]
+  }
+]

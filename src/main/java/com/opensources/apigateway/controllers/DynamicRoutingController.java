@@ -1,6 +1,7 @@
 package com.opensources.apigateway.controllers;
 
 import com.opensources.apigateway.exceptions.GeneralErrorException;
+import com.opensources.apigateway.models.DynamicRoute;
 import com.opensources.apigateway.services.DynamicRoutingService;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
@@ -24,10 +25,10 @@ public class DynamicRoutingController {
 
     @RequestMapping("/**")
     public ResponseEntity<?> routeRequest(@RequestBody(required = false) String body,
-                                                 HttpMethod httpMethod,
                                                  HttpServletRequest httpServletRequest,
                                                  HttpServletResponse httpServletResponse) throws IOException, GeneralErrorException {
-        ResponseEntity<?> responseEntity = dynamicRoutingService.processRoutingRequest(body, httpMethod, httpServletRequest);
+        DynamicRoute dynamicRoute = (DynamicRoute) httpServletRequest.getAttribute("dynamic_route");
+        ResponseEntity<?> responseEntity = dynamicRoutingService.processRoutingRequest(dynamicRoute, body, httpServletRequest);
         return new ResponseEntity<>(responseEntity.getBody(), responseEntity.getStatusCode());
     }
 }

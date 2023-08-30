@@ -1,47 +1,33 @@
 package com.opensources.apigateway.interceptors;
 
 import com.opensources.apigateway.configurations.ApplicationConfig;
+import com.opensources.apigateway.models.DynamicRoute;
+import com.opensources.apigateway.services.ApiScopeService;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.stereotype.Component;
 import org.springframework.web.servlet.HandlerInterceptor;
 
 import java.net.URI;
-import java.util.Map;
 
 @Component
 public class ServiceInterceptor implements HandlerInterceptor {
-    private final ApplicationConfig applicationConfig;
+    private final ApiScopeService apiScopeService;
 
     @Autowired
-    public ServiceInterceptor(ApplicationConfig applicationConfig) {
-        this.applicationConfig = applicationConfig;
+    public ServiceInterceptor(ApiScopeService apiScopeService) {
+        this.apiScopeService = apiScopeService;
     }
 
     @Override
     public boolean preHandle(HttpServletRequest httpServletRequest, HttpServletResponse httpServletResponse, Object handler) throws Exception {
-        String[] paths = httpServletRequest.getRequestURI().split("/");
-        if (paths.length == 0) {
+        DynamicRoute route = apiScopeService.getMatchedAPI(httpServletRequest.getServletPath(), httpServletRequest.getMethod());
+        if (route == null) {
             return false;
         }
 
-        ApplicationConfig.ServiceProperties serviceProperties = applicationConfig.getServices().get(paths[1]);
-        if (serviceProperties == null) {
-            return false;
-        }
-        String scheme = serviceProperties.getScheme();
-        String host = serviceProperties.getHost();
-        int port = serviceProperties.getPort();
-
-        URI uri = new URI(scheme,
-                null,
-                host,
-                port,
-                httpServletRequest.getRequestURI(),
-                httpServletRequest.getQueryString(), null);
-        httpServletRequest.setAttribute("redirect_uri", uri);
+        httpServletRequest.setAttribute("dynamic_route", route);
         return true;
     }
 }

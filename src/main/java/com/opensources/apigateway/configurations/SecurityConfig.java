@@ -3,6 +3,7 @@ package com.opensources.apigateway.configurations;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.opensources.apigateway.controllers.response.Response;
+import com.opensources.apigateway.models.DynamicRoute;
 import com.opensources.apigateway.services.ApiScopeService;
 import jakarta.servlet.http.HttpServletResponse;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -29,27 +30,23 @@ public class SecurityConfig {
 
     @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
-        JsonNode apiScopes = apiScopeService.loadApiScopes();
-
-        for (JsonNode scope : apiScopes) {
-            String path = scope.get("path").asText();
-            String method = scope.get("method").asText();
-            boolean authRequired = scope.get("auth_required").asBoolean();
+        List<DynamicRoute> routes = apiScopeService.getDynamicRoutes();
+        for (DynamicRoute dynamicRoute : routes) {
+            String path = dynamicRoute.getPath();
+            String method = dynamicRoute.getMethod();
+            boolean authRequired = dynamicRoute.isAuthRequired();
 
             //TODO: handle authenticated
             if (authRequired) {
                 http.authorizeHttpRequests(requests ->
-                        requests.requestMatchers(HttpMethod.valueOf(method), path).authenticated()
+                        requests.requestMatchers(method, path).authenticated()
                 );
             } else {
                 http.authorizeHttpRequests(requests ->
-                        requests.requestMatchers(HttpMethod.valueOf(method), path).permitAll()
+                        requests.requestMatchers(method, path).permitAll()
                 );
             }
         }
-
-        List<JsonNode> dynamicApiScopes = apiScopeService.loadDynamicApiScopes();
-        System.out.println(dynamicApiScopes);
 
         // Deny access to all unmatched requests
         http.exceptionHandling()
