@@ -18,10 +18,8 @@ import org.springframework.web.client.RestTemplate;
 
 import java.net.URI;
 import java.net.URISyntaxException;
-import java.util.Enumeration;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
+import java.util.concurrent.CompletableFuture;
 
 @Service
 public class DynamicRoutingService {
@@ -33,7 +31,8 @@ public class DynamicRoutingService {
         this.restTemplate = restTemplate;
     }
 
-    public ResponseEntity<?> processRoutingRequest(DynamicRoute dynamicRoute, String body, HttpServletRequest request) throws JsonProcessingException, GeneralErrorException {
+    public ResponseEntity<?> processRoutingRequest(String body, HttpServletRequest request) throws JsonProcessingException, GeneralErrorException {
+        DynamicRoute dynamicRoute = (DynamicRoute) request.getAttribute("dynamic_route");
         HttpHeaders httpHeaders = new HttpHeaders();
         Enumeration<String> headerNames = request.getHeaderNames();
         while (headerNames.hasMoreElements()) {
@@ -48,33 +47,50 @@ public class DynamicRoutingService {
         }
     }
 
-    private ResponseEntity<?> processReversingProxy(DynamicRoute dynamicRoute, HttpHeaders httpHeaders, String body, HttpServletRequest request)
+    private ResponseEntity<Response<Object>> processReversingProxy(DynamicRoute dynamicRoute, HttpHeaders httpHeaders, String body, HttpServletRequest request)
             throws GeneralErrorException, JsonProcessingException {
         HttpEntity<String> httpEntity = new HttpEntity<>(body, httpHeaders);
         URI uri = buildUri(dynamicRoute, request);
 
         try {
-            return restTemplate.exchange(
+            ResponseEntity<Response<Object>> responseEntity = restTemplate.exchange(
                     uri.toString(),
                     HttpMethod.valueOf(dynamicRoute.getMethod()),
                     httpEntity,
-                    Object.class);
+                    new ParameterizedTypeReference<>() {});
+            return new ResponseEntity<>(responseEntity.getBody(), responseEntity.getStatusCode());
         } catch (HttpClientErrorException | HttpServerErrorException e) {
             Response<?> res = new ObjectMapper().readValue(e.getResponseBodyAsString(), Response.class);
             throw new GeneralErrorException(res.getCode());
         }
     }
 
-    private ResponseEntity<?> processDynamicRouting(DynamicRoute dynamicRoute, HttpHeaders httpHeaders, String body, HttpServletRequest request) throws JsonProcessingException, GeneralErrorException {
+    private ResponseEntity<Response<Map<String, Object>>> processDynamicRouting(DynamicRoute dynamicRoute, HttpHeaders httpHeaders, String body, HttpServletRequest request) {
         List<List<Route>> routes = dynamicRoute.getRoutes();
-        Map<String, Object> response = new HashMap<>();
+        Map<String, Object> responseMap = new HashMap<>();
         for (List<Route> outerRoutes : routes) {
-            Route interRoute = outerRoutes.get(0);
-            HttpEntity<String> httpEntity = new HttpEntity<>(body, httpHeaders);
-            URI uri = buildUri(interRoute, request);
-            Object responseData = request(uri.toString(), HttpMethod.valueOf(interRoute.getMethod()), httpEntity);
-            response.put(interRoute.getKey(), responseData);
+            List<CompletableFuture<Void>> futures = new ArrayList<>();
+            for (Route innerRoute : outerRoutes) {
+                HttpEntity<String> httpEntity = new HttpEntity<>(body, httpHeaders);
+                URI uri = buildUri(innerRoute, request);
+                CompletableFuture<Void> future = CompletableFuture.runAsync(() -> {
+                    Object responseData;
+                    try {
+                        responseData = request(uri.toString(), HttpMethod.valueOf(innerRoute.getMethod()), httpEntity);
+                    } catch (GeneralErrorException | JsonProcessingException e) {
+                        throw new RuntimeException(e);
+                    }
+                    responseMap.put(innerRoute.getKey(), responseData);
+                });
+                futures.add(future);
+            }
+            CompletableFuture<Void> allOf = CompletableFuture.allOf(futures.toArray(new CompletableFuture[0]));
+            allOf.join();
         }
+
+        Response<Map<String, Object>> response = new Response<>();
+        response.setCode("success");
+        response.setData(responseMap);
         return new ResponseEntity<>(response, HttpStatus.OK);
     }
 

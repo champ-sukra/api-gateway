@@ -24,6 +24,12 @@
           "path": "/auth/management/v1/roles",
           "method": "GET",
           "key": "x1"
+        },
+        {
+          "service": "auth",
+          "path": "/auth/management/v1/roles",
+          "method": "GET",
+          "key": "x2"
         }
       ],
       [
@@ -32,6 +38,12 @@
           "path": "/auth/management/v1/roles",
           "method": "GET",
           "key": "x3"
+        },
+        {
+          "service": "auth",
+          "path": "/auth/management/v1/roles",
+          "method": "GET",
+          "key": "x4"
         }
       ]
     ]

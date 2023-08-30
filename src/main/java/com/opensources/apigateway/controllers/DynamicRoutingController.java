@@ -27,9 +27,7 @@ public class DynamicRoutingController {
     public ResponseEntity<?> routeRequest(@RequestBody(required = false) String body,
                                                  HttpServletRequest httpServletRequest,
                                                  HttpServletResponse httpServletResponse) throws IOException, GeneralErrorException {
-        DynamicRoute dynamicRoute = (DynamicRoute) httpServletRequest.getAttribute("dynamic_route");
-        ResponseEntity<?> responseEntity = dynamicRoutingService.processRoutingRequest(dynamicRoute, body, httpServletRequest);
-        return new ResponseEntity<>(responseEntity.getBody(), responseEntity.getStatusCode());
+        return dynamicRoutingService.processRoutingRequest(body, httpServletRequest);
     }
 }
 
