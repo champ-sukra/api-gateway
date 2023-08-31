@@ -32,6 +32,7 @@ public class DynamicRoutingController {
                                                  HttpServletRequest httpServletRequest,
                                                  HttpServletResponse httpServletResponse) throws IOException, GeneralErrorException {
         DynamicRoute dynamicRoute = (DynamicRoute) httpServletRequest.getAttribute("dynamic_route");
+
         if (dynamicRoute.getRoutes() == null) {
             return dynamicRoutingService.processReversingProxy(dynamicRoute, body, httpServletRequest);
         } else {
