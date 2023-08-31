@@ -5,8 +5,7 @@
     "method": "GET",
     "auth_required": false,
     "cache_control": {
-      "pattern": "roles",
-      "ttl": 600
+      "pattern": "roles"
     }
   },
   {
@@ -14,8 +13,7 @@
     "method": "GET",
     "auth_required": false,
     "cache_control": {
-      "pattern": "x",
-      "ttl": 600
+      "pattern": "x"
     },
     "routes": [
       [

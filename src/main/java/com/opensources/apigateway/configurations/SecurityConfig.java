@@ -40,10 +40,13 @@ public class SecurityConfig {
             if (authRequired) {
                 http.authorizeHttpRequests(requests ->
                         requests.requestMatchers(method, path).authenticated()
+                                .requestMatchers("/actuator/**").permitAll()
                 );
             } else {
                 http.authorizeHttpRequests(requests ->
                         requests.requestMatchers(method, path).permitAll()
+                                .requestMatchers("/actuator/**").permitAll()
+                                .and()
                 );
             }
         }

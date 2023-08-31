@@ -45,9 +45,9 @@ public class ApiScopeService {
 
             JsonNode cacheControlNode = scope.get("cache_control");
             String pattern = cacheControlNode.get("pattern").asText();
-            int ttl = cacheControlNode.get("ttl").asInt();
+//            int ttl = cacheControlNode.get("ttl").asInt();
 
-            CacheControl cacheControl = new CacheControl(ttl, pattern);
+            CacheControl cacheControl = new CacheControl(pattern);
 
             DynamicRoute dynamicRoute;
             JsonNode outerRoutes = scope.get("routes");

@@ -9,6 +9,8 @@ import com.opensources.apigateway.models.DynamicRoute;
 import com.opensources.apigateway.models.Route;
 import jakarta.servlet.http.HttpServletRequest;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.cache.annotation.CacheConfig;
+import org.springframework.cache.annotation.Cacheable;
 import org.springframework.core.ParameterizedTypeReference;
 import org.springframework.http.*;
 import org.springframework.stereotype.Service;
@@ -22,6 +24,7 @@ import java.util.*;
 import java.util.concurrent.CompletableFuture;
 
 @Service
+@CacheConfig(cacheNames = "responses")
 public class DynamicRoutingService {
 
     private final RestTemplate restTemplate;
@@ -31,25 +34,9 @@ public class DynamicRoutingService {
         this.restTemplate = restTemplate;
     }
 
-    public ResponseEntity<?> processRoutingRequest(String body, HttpServletRequest request) throws JsonProcessingException, GeneralErrorException {
-        DynamicRoute dynamicRoute = (DynamicRoute) request.getAttribute("dynamic_route");
-        HttpHeaders httpHeaders = new HttpHeaders();
-        Enumeration<String> headerNames = request.getHeaderNames();
-        while (headerNames.hasMoreElements()) {
-            String headerName = headerNames.nextElement();
-            httpHeaders.set(headerName, request.getHeader(headerName));
-        }
-
-        if (dynamicRoute.getRoutes() == null) {
-            return processReversingProxy(dynamicRoute, httpHeaders, body, request);
-        } else {
-            return processDynamicRouting(dynamicRoute, httpHeaders, body, request);
-        }
-    }
-
-    private ResponseEntity<Response<Object>> processReversingProxy(DynamicRoute dynamicRoute, HttpHeaders httpHeaders, String body, HttpServletRequest request)
+    public ResponseEntity<Response<Object>> processReversingProxy(DynamicRoute dynamicRoute, String body, HttpServletRequest request)
             throws GeneralErrorException, JsonProcessingException {
-        HttpEntity<String> httpEntity = new HttpEntity<>(body, httpHeaders);
+        HttpEntity<String> httpEntity = new HttpEntity<>(body, buildHttpHeaders(request));
         URI uri = buildUri(dynamicRoute, request);
 
         try {
@@ -65,13 +52,13 @@ public class DynamicRoutingService {
         }
     }
 
-    private ResponseEntity<Response<Map<String, Object>>> processDynamicRouting(DynamicRoute dynamicRoute, HttpHeaders httpHeaders, String body, HttpServletRequest request) {
-        List<List<Route>> routes = dynamicRoute.getRoutes();
+    @Cacheable(cacheNames = "responses", key = "#key")
+    public ResponseEntity<?> processDynamicRouting(HttpServletRequest request, List<List<Route>> dynamicRoutes, String key, String body) {
         Map<String, Object> responseMap = new HashMap<>();
-        for (List<Route> outerRoutes : routes) {
+        for (List<Route> outerRoutes : dynamicRoutes) {
             List<CompletableFuture<Void>> futures = new ArrayList<>();
             for (Route innerRoute : outerRoutes) {
-                HttpEntity<String> httpEntity = new HttpEntity<>(body, httpHeaders);
+                HttpEntity<String> httpEntity = new HttpEntity<>(body, buildHttpHeaders(request));
                 URI uri = buildUri(innerRoute, request);
                 CompletableFuture<Void> future = CompletableFuture.runAsync(() -> {
                     Object responseData;
@@ -105,6 +92,16 @@ public class DynamicRoutingService {
         } catch (URISyntaxException e) {
             throw new RuntimeException(e);
         }
+    }
+
+    private HttpHeaders buildHttpHeaders(HttpServletRequest request) {
+        HttpHeaders httpHeaders = new HttpHeaders();
+        Enumeration<String> headerNames = request.getHeaderNames();
+        while (headerNames.hasMoreElements()) {
+            String headerName = headerNames.nextElement();
+            httpHeaders.set(headerName, request.getHeader(headerName));
+        }
+        return httpHeaders;
     }
 
     private Object request(String uri, HttpMethod method, HttpEntity<String> httpEntity) throws GeneralErrorException, JsonProcessingException {
